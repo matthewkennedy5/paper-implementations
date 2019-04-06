@@ -35,17 +35,21 @@ class Trainer:
     def train(self, epochs):
         iters_per_epoch = len(self.train_data)
         loss_history = []
-        print('[INFO] Beginning training.')
+        print('[INFO] Beginning training with %d train and %d validation samples.' % (len(self.train_data), len(self.val_data)))
         for epoch in range(epochs):
             print('Epoch', epoch+1)
-            for X_batch, y_batch in tqdm(self.train_data):
-                self.optimizer.zero_grad()
-                out = self.model(X_batch)
-                loss_fn = self.loss(out, y_batch)
-                loss_history.append(loss_fn.item())
-                print(loss_fn.item())
-                loss_fn.backward()
-                self.optimizer.step()
+            with tqdm(self.train_data) as t:
+                for X_batch, y_batch in self.train_data:
+                    self.optimizer.zero_grad()
+                    out = self.model(X_batch)
+                    loss_fn = self.loss(out, y_batch)
+                    loss_history.append(loss_fn.item())
+                    loss_fn.backward()
+                    self.optimizer.step()
+                    t.set_postfix(loss='%0.4f' % (loss_fn.item(),))
+                    t.update()
+
+
         return loss_history
 
     def validate(self):
@@ -63,5 +67,5 @@ if __name__ == '__main__':
     lstm = LSTM(input_size=1, hidden_size=100, output_size=10).to(device)
     # Store all the data on the GPU since it's only like 100 MB
     data = SequentialMNIST(train=True, device=device)
-    trainer = Trainer(lstm, data, learning_rate=1e-4, batch_size=32, device=device)
-    trainer.train(epochs=1)
+    trainer = Trainer(lstm, data, learning_rate=1e-3, batch_size=100, device=device)
+    trainer.train(epochs=100)
