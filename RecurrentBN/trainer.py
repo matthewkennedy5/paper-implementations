@@ -14,7 +14,7 @@ N_VAL = 1000
 class Trainer:
 
     def __init__(self, model, data, learning_rate=1e-3, momentum=0.9,
-                 val_split=0.1, batch_size=32):
+                 val_split=0.1, batch_size=32, device=torch.device('cpu')):
         self.train_data, self.val_data = self.make_dataloaders(data, val_split, batch_size)
         self.model = model
         self.optimizer = torch.optim.RMSprop(self.model.parameters(), lr=learning_rate, momentum=momentum)
@@ -38,7 +38,7 @@ class Trainer:
         print('[INFO] Beginning training.')
         for epoch in range(epochs):
             print('Epoch', epoch+1)
-            for X_batch, y_batch in self.train_data:
+            for X_batch, y_batch in tqdm(self.train_data):
                 self.optimizer.zero_grad()
                 out = self.model(X_batch)
                 loss_fn = self.loss(out, y_batch)
@@ -59,7 +59,9 @@ class Trainer:
 # run method running the trainer using the two models.
 
 if __name__ == '__main__':
-    lstm = LSTM(input_size=1, hidden_size=100, output_size=10)
-    data = SequentialMNIST(train=True)
-    trainer = Trainer(lstm, data, learning_rate=1e-4, batch_size=32)
-    trainer.train(1)
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    lstm = LSTM(input_size=1, hidden_size=100, output_size=10).to(device)
+    # Store all the data on the GPU since it's only like 100 MB
+    data = SequentialMNIST(train=True, device=device)
+    trainer = Trainer(lstm, data, learning_rate=1e-4, batch_size=32, device=device)
+    trainer.train(epochs=1)
